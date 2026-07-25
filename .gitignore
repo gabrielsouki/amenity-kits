@@ -1,0 +1,4 @@
+.DS_Store
+
+# Machine-local Claude Code settings — the shared launch config is tracked.
+.claude/settings.local.json

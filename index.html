@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#10151c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Kits">
+<title>Amenity Kits</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- Shown until there's a usable session; see app.js. -->
+<div class="auth-gate" id="authGate" hidden>
+  <form class="auth-card" id="authForm">
+    <h2>Amenity Kits</h2>
+    <p class="auth-intro">Sign in to load your collection on this device.</p>
+    <label class="field">
+      <span>Email</span>
+      <input name="email" type="email" inputmode="email" autocomplete="username"
+             autocapitalize="none" spellcheck="false" required>
+    </label>
+    <label class="field">
+      <span>Password</span>
+      <input name="password" type="password" autocomplete="current-password" required>
+    </label>
+    <button type="submit" class="btn btn-primary btn-block" id="authBtn">Sign in</button>
+    <p class="auth-error" id="authError" role="alert" hidden></p>
+  </form>
+</div>
+
+<header class="topbar">
+  <h1 class="brand" id="viewTitle">Collection</h1>
+  <div class="topbar-actions">
+    <span class="sync-state" id="syncState" aria-live="polite"></span>
+    <button class="btn btn-primary" id="addBtn" type="button">Add kit</button>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- ── Collection ─────────────────────────────────────────── -->
+  <section class="view" id="view-collection" hidden>
+    <div class="controls">
+      <div class="segmented" role="tablist" id="statusTabs">
+        <button role="tab" type="button" data-status="owned" class="is-active">Collected</button>
+        <button role="tab" type="button" data-status="wanted">Wishlist</button>
+      </div>
+      <input type="search" id="searchInput" class="search" placeholder="Search airline, designer, series…" autocomplete="off">
+    </div>
+
+    <div class="filters" id="filterBar"></div>
+
+    <p class="count" id="resultCount"></p>
+    <div class="grid" id="kitGrid"></div>
+
+    <div class="empty" id="collectionEmpty" hidden>
+      <p class="empty-title">Nothing here yet</p>
+      <p class="empty-body" id="emptyBody">Add your first kit to start the collection.</p>
+      <button class="btn btn-primary" type="button" data-action="add">Add a kit</button>
+    </div>
+  </section>
+
+  <!-- ── Detail ─────────────────────────────────────────────── -->
+  <section class="view" id="view-detail" hidden></section>
+
+  <!-- ── Add / edit form ────────────────────────────────────── -->
+  <section class="view" id="view-form" hidden></section>
+
+  <!-- ── Stats ──────────────────────────────────────────────── -->
+  <section class="view" id="view-stats" hidden></section>
+
+  <!-- ── Data / backup ──────────────────────────────────────── -->
+  <section class="view" id="view-data" hidden></section>
+
+</main>
+
+<nav class="tabbar">
+  <a href="#/collection" data-tab="collection">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    <span>Collection</span>
+  </a>
+  <a href="#/stats" data-tab="stats">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="12" width="4.5" height="9" rx="1.2"/><rect x="9.75" y="6" width="4.5" height="15" rx="1.2"/><rect x="16.5" y="9" width="4.5" height="12" rx="1.2"/></svg>
+    <span>Stats</span>
+  </a>
+  <a href="#/data" data-tab="data">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v11m0 0 4-4m-4 4-4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    <span>Backup</span>
+  </a>
+</nav>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

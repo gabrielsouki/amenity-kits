@@ -1,0 +1,80 @@
+# Two dormancy clocks have to be held off at once, which is why this workflow
+# does two unrelated-looking things:
+#
+#   1. Supabase pauses a free project after ~7 days with no database activity.
+#      The curl below writes a timestamp, which is unambiguous activity.
+#
+#   2. GitHub disables scheduled workflows after 60 days with no repository
+#      activity — so the very cron that prevents (1) eventually switches itself
+#      off. Committing a file resets that clock.
+#
+# Nothing secret is needed. kit_heartbeat() is a security-definer function that
+# can only move one timestamp forward, so the publishable key is enough and the
+# service-role key never has to live in this repo.
+
+name: Keep alive
+
+on:
+  schedule:
+    # Every other day. Worst-case gap across a month boundary is 3 days, which
+    # leaves a wide margin under Supabase's ~7-day pause window.
+    - cron: '23 7 */2 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ping the database
+        env:
+          # Overridable via repository variables, but these are the public
+          # values already embedded in the client — see js/supabase.js.
+          SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://fkmwdbkjxzmbotbpqynw.supabase.co' }}
+          SUPABASE_KEY: ${{ vars.SUPABASE_KEY || 'sb_publishable_4lXW5yf0vI8-PXL7htRnZw_r1T6hgnG' }}
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o response.txt -w '%{http_code}' \
+            -X POST "$SUPABASE_URL/rest/v1/rpc/kit_heartbeat" \
+            -H "apikey: $SUPABASE_KEY" \
+            -H 'Content-Type: application/json' \
+            --retry 3 --retry-delay 5 --max-time 30 \
+            -d '{}')
+          echo "HTTP $code — $(cat response.txt)"
+          # Fail loudly. A silently broken keep-alive is worse than none, because
+          # it looks like it is working right up until the project pauses.
+          if [ "$code" != "200" ]; then
+            echo "::error::Heartbeat failed with HTTP $code. The project may pause in ~7 days."
+            exit 1
+          fi
+
+      - name: Reset GitHub's 60-day inactivity clock
+        run: |
+          set -euo pipefail
+          last=$(git log -1 --format=%ct)
+          age_days=$(( ( $(date +%s) - last ) / 86400 ))
+          echo "Last commit was $age_days day(s) ago."
+
+          # Only commit when the clock is genuinely running down. Committing on
+          # every run would work too, but would bury real history under hundreds
+          # of no-op commits. 25 days gives better than 2x margin on the 60-day
+          # limit while keeping the log readable.
+          if [ "$age_days" -lt 25 ]; then
+            echo "Recent activity — no commit needed."
+            exit 0
+          fi
+
+          date -u +'%Y-%m-%dT%H:%M:%SZ' > .github/last-keepalive
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add .github/last-keepalive
+          git commit -m 'chore: keep scheduled workflows enabled'
+          git push
