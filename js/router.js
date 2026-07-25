@@ -56,6 +56,13 @@ async function handle() {
   const title = typeof view.title === 'function' ? view.title(params) : view.title;
   document.getElementById('viewTitle').textContent = title;
 
+  // A view with a `back` target shows the topbar arrow; top-level tab views
+  // (no target) hide it and are reached from the bottom bar instead.
+  const backTo = typeof view.back === 'function' ? view.back(params) : view.back;
+  const backBtn = document.getElementById('backBtn');
+  backBtn.hidden = !backTo;
+  backBtn.onclick = backTo ? () => go(backTo) : null;
+
   for (const a of document.querySelectorAll('.tabbar a')) {
     a.classList.toggle('is-on', a.dataset.tab === view.tab);
   }

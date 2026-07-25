@@ -88,6 +88,7 @@ export const view = {
   el: '#view-detail',
   title: 'Kit',
   tab: 'collection',
+  back: '/collection',
 
   async render(host, { id }) {
     releaseURLs(urls);
@@ -204,12 +205,8 @@ export const view = {
       replace('/collection');
     });
 
-    const back = document.createElement('a');
-    back.className = 'btn btn-quiet';
-    back.href = '#/collection';
-    back.textContent = 'Back';
-
-    actions.append(edit, del, back);
+    // Going back is the topbar arrow's job now, so it isn't repeated here.
+    actions.append(edit, del);
     host.appendChild(actions);
   },
 

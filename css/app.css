@@ -97,9 +97,33 @@ h1, h2, h3 { margin: 0; font-weight: 640; letter-spacing: -0.015em; }
   border-bottom: 1px solid var(--line);
 }
 
-.brand { font-size: 19px; }
+.topbar-lead {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;   /* lets the title ellipsis rather than shove the actions off */
+}
+.brand { font-size: 19px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.topbar-actions { display: flex; gap: 8px; flex-shrink: 0; }
+.iconbtn {
+  appearance: none;
+  display: inline-grid;
+  place-items: center;
+  width: 38px; height: 38px;
+  margin-left: -8px;   /* optical: pull the arrow to the screen edge */
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  border-radius: 999px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.iconbtn:active { background: color-mix(in srgb, var(--ink) 10%, transparent); }
+.iconbtn svg { width: 24px; height: 24px; }
+.iconbtn[hidden] { display: none; }
+
+.topbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
 /* ── Layout ─────────────────────────────────────────────────── */
 #main {
@@ -395,18 +419,67 @@ label.field { display: block; }
   color: var(--ink-3);
   margin-bottom: 4px;
 }
-.count-cell input {
+
+/* Copies are set with − / + rather than typed, so a phone never opens a keyboard
+   here and the value can't go negative or non-numeric. */
+.stepper {
+  display: grid;
+  grid-template-columns: 34px 1fr 34px;
+  align-items: stretch;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  overflow: hidden;
+}
+.stepper-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--ink);
+  font: inherit;
+  font-size: 19px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.stepper-btn:active { background: color-mix(in srgb, var(--ink) 8%, transparent); }
+.stepper input {
   width: 100%;
   appearance: none;
-  border: 1px solid var(--line);
-  background: var(--surface-2);
+  border: 0;
+  background: transparent;
   color: var(--ink);
   font: inherit;
   font-weight: 620;
   font-variant-numeric: tabular-nums;
   text-align: center;
-  padding: 9px 4px;
-  border-radius: var(--radius-sm);
+  padding: 9px 2px;
+}
+/* No native spinners — the buttons are the only control. */
+.stepper input::-webkit-outer-spin-button,
+.stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.stepper input[type=number] { -moz-appearance: textfield; }
+
+/* ── Choice pills (route type, cabin) ───────────────────────── */
+.choice-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.choice {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--ink-2);
+  font: inherit;
+  font-weight: 560;
+  padding: 9px 15px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.choice.is-on {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+  font-weight: 620;
 }
 
 /* ── Combobox (suggestion field) ────────────────────────────── */

@@ -1,5 +1,5 @@
 // Bump this on every change to any precached file.
-const CACHE_VERSION = 'kits-v4';
+const CACHE_VERSION = 'kits-v5';
 
 const SHELL = [
   './',

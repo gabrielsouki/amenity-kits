@@ -16,6 +16,33 @@ const optionsHTML = (list, selected) => list
   .map((o) => `<option value="${o.value}"${o.value === selected ? ' selected' : ''}>${o.label}</option>`)
   .join('');
 
+// A single-select row of tappable pills, backed by a hidden input so the save
+// handler and prefill keep reading `form[name].value` exactly as with a <select>.
+const choiceGroupHTML = (name, list) => `
+  <input type="hidden" name="${name}">
+  <div class="choice-group" data-choice="${name}" role="radiogroup">
+    ${list.map((o) => `<button type="button" class="choice" role="radio"
+        aria-checked="false" data-value="${o.value}">${o.label}</button>`).join('')}
+  </div>`;
+
+function wireChoice(host, name, value) {
+  const input = host.querySelector(`input[name="${name}"]`);
+  const group = host.querySelector(`[data-choice="${name}"]`);
+  const set = (v) => {
+    input.value = v;
+    for (const btn of group.querySelectorAll('.choice')) {
+      const on = btn.dataset.value === v;
+      btn.classList.toggle('is-on', on);
+      btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    }
+  };
+  group.addEventListener('click', (e) => {
+    const btn = e.target.closest('.choice');
+    if (btn) set(btn.dataset.value);
+  });
+  set(value);
+}
+
 function renderPreviews(container) {
   releaseURLs(urls);
   container.textContent = '';
@@ -53,6 +80,8 @@ export const view = {
   el: '#view-form',
   title: (params) => (params.id ? 'Edit kit' : 'New kit'),
   tab: 'collection',
+  // Editing returns to the kit; a new kit returns to the collection.
+  back: (params) => (params.id ? `/kit/${params.id}` : '/collection'),
 
   async render(host, { id }) {
     releaseURLs(urls);
@@ -101,26 +130,32 @@ export const view = {
           </label>
         </div>
 
-        <div class="row">
-          <label class="field">
-            <span>Route type</span>
-            <select name="routeType">${optionsHTML(ROUTE_TYPES)}</select>
-          </label>
-          <label class="field">
-            <span>Cabin</span>
-            <select name="cabin">${optionsHTML(CABINS)}</select>
-          </label>
+        <div class="field">
+          <span>Route type</span>
+          ${choiceGroupHTML('routeType', ROUTE_TYPES)}
+        </div>
+
+        <div class="field">
+          <span>Cabin</span>
+          ${choiceGroupHTML('cabin', CABINS)}
         </div>
 
         <fieldset class="field counts" id="stateField">
           <span>How many, and in what state</span>
           <div class="counts-grid">
             ${STATES.map((s) => `
-              <label class="count-cell">
+              <div class="count-cell">
                 <span>${s.label}</span>
-                <input type="number" name="count_${s.value}" inputmode="numeric"
-                       min="0" max="999" step="1" value="0">
-              </label>`).join('')}
+                <div class="stepper">
+                  <button type="button" class="stepper-btn" data-step="-1"
+                          aria-label="One fewer ${s.label.toLowerCase()}">−</button>
+                  <input type="number" name="count_${s.value}" inputmode="numeric"
+                         min="0" max="999" step="1" value="0" readonly
+                         aria-label="${s.label} copies">
+                  <button type="button" class="stepper-btn" data-step="1"
+                          aria-label="One more ${s.label.toLowerCase()}">+</button>
+                </div>
+              </div>`).join('')}
           </div>
           <p class="hint" id="countsTotal"></p>
         </fieldset>
@@ -167,14 +202,30 @@ export const view = {
     const fileInput = host.querySelector('#fileInput');
     const stateField = host.querySelector('#stateField');
 
+    // Route type and cabin are pill groups backed by hidden inputs. New kits
+    // default to long-haul (the common case) and economy.
+    wireChoice(form, 'routeType', kit?.routeType || 'longhaul');
+    wireChoice(form, 'cabin', kit?.cabin || 'economy');
+
+    // Steppers only ever change their input from JS, which doesn't fire 'input',
+    // so each button nudges the value and refreshes the total by hand.
+    for (const st of host.querySelectorAll('.stepper')) {
+      const input = st.querySelector('input');
+      for (const btn of st.querySelectorAll('.stepper-btn')) {
+        btn.addEventListener('click', () => {
+          const cur = parseInt(input.value, 10) || 0;
+          input.value = Math.min(999, Math.max(0, cur + parseInt(btn.dataset.step, 10)));
+          syncTotal();
+        });
+      }
+    }
+
     /* Prefill ----------------------------------------------------- */
     if (kit) {
       form.status.value = kit.status;
       form.airline.value = kit.airline || '';
       form.month.value = kit.month || '';
       form.year.value = kit.year || '';
-      form.routeType.value = kit.routeType;
-      form.cabin.value = kit.cabin;
       form.designer.value = kit.designer || '';
       form.series.value = kit.series || '';
       form.variant.value = kit.variant || '';
@@ -184,7 +235,7 @@ export const view = {
       for (const s of STATES) form[`count_${s.value}`].value = c[s.value] || 0;
     } else {
       form.year.value = thisYear;
-      form.count_sealed.value = 1;
+      // Counts start at 0 across the board — nothing is preselected.
     }
 
     const readCounts = () => {
