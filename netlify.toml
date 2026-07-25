@@ -1,0 +1,19 @@
+# Static site: no build step, so the repo root is published as-is.
+[build]
+  publish = "."
+  command = ""
+
+[functions]
+  directory = "netlify/functions"
+
+# Every other day. Worst-case gap across a month boundary is 3 days, well inside
+# Supabase's ~7-day pause window. See netlify/functions/keepalive.mjs.
+[functions."keepalive"]
+  schedule = "23 7 */2 * *"
+
+# The service worker must never be served from cache, or a new version can't
+# take over — it is the file that decides when everything else updates.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"

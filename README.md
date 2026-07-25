@@ -125,22 +125,31 @@ rejected.
 
 ### Keeping the free tier awake
 
-Two dormancy clocks run at once, and `.github/workflows/keepalive.yml` holds off
-both:
+Supabase pauses a free project after ~7 days with no database activity, so
+something has to poke it. Both hosts are set up to; **only one needs to run.**
+
+Either way the ping calls `kit_heartbeat()`, a security-definer function that can
+only move one timestamp forward — so no service-role secret lives in this repo,
+and the publishable key is enough.
+
+**Netlify** — `netlify.toml` plus `netlify/functions/keepalive.mjs`. One cron,
+nothing else to think about. Netlify doesn't disable a schedule for repository
+inactivity, so this is the simpler of the two.
+
+**GitHub Actions** — `.github/workflows/keepalive.yml`, which needs *two*
+heartbeats because two clocks run at once:
 
 | Clock | Trips after | Held off by |
 | --- | --- | --- |
 | Supabase pauses an idle free project | ~7 days | a cron ping every 2 days |
 | GitHub disables idle scheduled workflows | 60 days | the same job committing a file when the last commit is 25+ days old |
 
-The second one matters: without it the cron that prevents the first eventually
-switches itself off. The ping calls `kit_heartbeat()`, a security-definer
-function that can only move one timestamp forward — so no service-role secret
-has to live in this repo.
+The second matters: without it, the cron preventing the first eventually switches
+itself off — a failure that looks like nothing is wrong until the project pauses.
 
-This database is shared with the portfolio/roadmap project, so anything else
-keeping that project warm covers the collection too. The cron is the guarantee,
-not the only line of defence.
+Belt and braces: this database is shared with the portfolio/roadmap project, so
+anything already keeping *that* warm covers the collection too. The cron is the
+guarantee, not the only line of defence.
 
 ## Backups — still worth it
 
@@ -177,7 +186,9 @@ js/supabase.js         auth + PostgREST over fetch; project URL and key
 js/sync.js             reconciles IndexedDB against Supabase
 js/views/*.js          one module per screen
 js/app.js              boot, auth gate, sync triggers
-.github/workflows/     the keep-alive cron
+netlify.toml           publish dir, function schedule, sw.js cache header
+netlify/functions/     the keep-alive cron (Netlify)
+.github/workflows/     the keep-alive cron (GitHub Actions) — only one is needed
 ```
 
 If you edit any file in `sw.js`'s `SHELL` list, bump `CACHE_VERSION` in `sw.js`
